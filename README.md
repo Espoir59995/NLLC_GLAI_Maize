@@ -11,8 +11,8 @@ NLLC_GLAI_Maize/
 ├── README.md
 ├── data/
 │   ├── 2023_leaf_images/
-│   │   ├── 2Green/                       # 77 images from KS4 to KS6
-│   │   └── 3GreenandYellow/              # 72 images from KS7 to KS10
+│   │   ├── 2Green.zip                       # 77 images from KS4 to KS6
+│   │   └── 3GreenandYellow.zip              # 72 images from KS7 to KS10
 │   └── training_pixels/
 │       ├── 2Green.csv                    # Pixel-level training samples for the green-only classifier
 │       └── 3GreenandYellow.csv           # Pixel-level training samples for the green-and-yellow classifier
