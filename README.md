@@ -2,7 +2,7 @@
 
 Data and model files for estimating green maize leaf area index (GLAI) from upward-looking maize LAI observations through phenology-constrained modeling of non-photosynthetic leaf components.
 
-This repository provides a review dataset and model files associated with the manuscript submitted to *Plant Phenomics*. It includes a representative subset of 149 maize leaf images collected in 2023, a trained Random Forest classifier for green and yellow leaf component classification, and scripts for testing the model on the shared images.
+This repository provides a review dataset and model files associated with the manuscript submitted to *Plant Phenomics*. It includes a representative subset of maize leaf images collected in 2023, pixel-level training data for leaf component classification, a trained Random Forest classifier, and scripts for testing or retraining the model.
 
 ## Repository contents
 
@@ -10,7 +10,9 @@ This repository provides a review dataset and model files associated with the ma
 NLLC_GLAI_Maize/
 ├── README.md
 ├── data/
-│   └── 2023_leaf_images/                 # Representative subset of 149 maize leaf images from 2023
+│   ├── 2023_leaf_images/                 # Representative subset of 149 maize leaf images from 2023
+│   └── training_pixels/
+│       └── 3GreenandYellow.csv           # Pixel-level training samples for RF classification
 ├── model/
 │   └── 3GreenandYellow.pkl               # Trained Random Forest leaf component classifier
 └── scripts/
@@ -20,9 +22,11 @@ NLLC_GLAI_Maize/
 
 ## Shared data scope
 
-The shared image dataset contains 149 maize leaf images collected in 2023 at the Jingyuetan Remote Sensing Test Site (JYT). These images represent a subset of the complete multi-year field image archive and are provided for model testing and review purposes.
+The shared image dataset contains a representative subset of 149 maize leaf images collected in 2023 at the Jingyuetan Remote Sensing Test Site (JYT). These images are provided for model testing and review purposes.
 
-Because the field campaign is part of an ongoing research project, the complete multi-year raw image archive, full field sensor records, and complete plot-level datasets are not publicly released at this stage. The shared data and model files are sufficient for testing the image-based leaf component classification procedure described in the manuscript.
+The shared training dataset `data/training_pixels/3GreenandYellow.csv` contains pixel-level samples used for Random Forest leaf component classification. The file includes 800 labelled pixels, with 200 samples for each class.
+
+Because the field campaign is part of an ongoing research project, the complete multi-year raw image archive, full field sensor records, and complete plot-level datasets are not publicly released at this stage. The shared images, pixel-level training data, trained model, and scripts are sufficient for testing and retraining the image-based leaf component classifier described in the manuscript.
 
 ## File naming convention
 
@@ -81,6 +85,32 @@ The coordinates are provided in WGS84 geographic coordinates. The `plot_id` valu
 | Y13 | 125.61537362 | 44.78912811 |
 | Y14 | 125.61933853 | 44.79216628 |
 
+## Pixel-level training data
+
+The training file is provided as:
+
+```text
+data/training_pixels/3GreenandYellow.csv
+```
+
+The file contains the following columns:
+
+| Column | Description |
+|---|---|
+| R | Red channel value |
+| G | Green channel value |
+| B | Blue channel value |
+| TYPE | Pixel class label |
+
+The class labels are:
+
+| Class label | Class name | Number of training pixels |
+|---:|---|---:|
+| 1 | White background | 200 |
+| 2 | Red reference square | 200 |
+| 3 | Green photosynthetic leaf component | 200 |
+| 4 | Yellow non-photosynthetic leaf component | 200 |
+
 ## Leaf component classes
 
 The trained Random Forest model classifies each image pixel into one of four classes:
@@ -118,7 +148,9 @@ The scripts were prepared for Python 3.8 or later. Install the required packages
 pip install opencv-python numpy pandas scikit-learn joblib
 ```
 
-## Testing the model on the shared images
+If the pretrained `.pkl` file cannot be loaded because of local package version differences, retrain the Random Forest classifier using the provided pixel-level training CSV file.
+
+## Option 1: Test the pretrained model on the shared images
 
 Run the batch classification script from the root directory of the repository:
 
@@ -143,9 +175,30 @@ python scripts/batch_leaf_component_classification.py \
 
 The script does not overwrite the original images. Classified masks are saved to the output directory, and pixel counts are written to the output CSV file.
 
+## Option 2: Retrain the Random Forest classifier
+
+The training script can be used to retrain the Random Forest classifier using the shared pixel-level training data:
+
+```bash
+python scripts/train_rf_leaf_component_classifier.py \
+  --training-csv data/training_pixels/3GreenandYellow.csv \
+  --model-out model/3GreenandYellow_retrained.pkl \
+  --metrics-out outputs/rf_cross_validation_metrics.csv
+```
+
+The script performs five-fold cross-validation and saves the retrained model. The retrained model can then be used for batch classification:
+
+```bash
+python scripts/batch_leaf_component_classification.py \
+  --input-dir data/2023_leaf_images \
+  --model model/3GreenandYellow_retrained.pkl \
+  --output-dir outputs/classified_images_retrained \
+  --output-csv outputs/pixel_count_results_retrained.csv
+```
+
 ## Output columns
 
-The output CSV includes the following columns:
+The output CSV from the batch classification script includes the following columns:
 
 | Column | Description |
 |---|---|
@@ -159,27 +212,11 @@ The output CSV includes the following columns:
 | yellow_area_cm2 | Estimated yellow leaf area in cm² |
 | total_leaf_area_cm2 | Estimated total leaf area in cm² |
 
-## Training script
-
-The training script is provided to document the Random Forest training workflow:
-
-```text
-scripts/train_rf_leaf_component_classifier.py
-```
-
-This script expects a pixel-level training CSV file containing the following columns:
-
-```text
-B, G, R, TYPE
-```
-
-where `B`, `G`, and `R` are image pixel values and `TYPE` is the class label. The training script performs five-fold cross-validation and saves a trained Random Forest classifier as a `.pkl` file.
-
-The training script is not required for testing the shared model. Reviewers can directly use the trained classifier and the batch classification script to test the model on the shared images.
+The output CSV from the training script includes five-fold cross-validation metrics, including accuracy, macro precision, and macro recall.
 
 ## Data availability note
 
-A representative subset of 149 maize leaf images collected in 2023, the trained Random Forest classifier, and testing scripts are provided in this repository for review and model testing. The complete multi-year raw image archive and full field sensor records are part of an ongoing research project and are not publicly released at this stage. Additional processed data supporting the main results are available from the corresponding author upon reasonable request.
+A representative subset of 149 maize leaf images collected in 2023, the pixel-level training data, the trained Random Forest classifier, and testing scripts are provided in this repository for review and model testing. The complete multi-year raw image archive and full field sensor records are part of an ongoing research project and are not publicly released at this stage. Additional processed data supporting the main results are available from the corresponding author upon reasonable request.
 
 ## Contact
 
